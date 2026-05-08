@@ -216,3 +216,37 @@ st.caption("""
 - 📈 Weekly trend analysis
 - 🔄 Auto-refresh every 30 seconds
 """)
+
+@st.cache_data
+def export_daily_report():
+    """Generate Excel report untuk email"""
+    import io
+    import xlsxwriter
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Sheet 1: Daily Metrics
+        metrics_df = fetch_realtime_metrics()
+        metrics_df.to_excel(writer, sheet_name='Daily KPIs', index=False)
+        
+        # Sheet 2: Warehouse Performance
+        throughput_df = fetch_warehouse_throughput()
+        throughput_df.to_excel(writer, sheet_name='Warehouse Report', index=False)
+        
+        # Sheet 3: Trend Analysis (last 30 days)
+        trend_30d = get_trend_analysis(30)
+        trend_30d.to_excel(writer, sheet_name='Monthly Trends', index=False)
+    
+    return output.getvalue()
+
+# Di sidebar
+with st.sidebar:
+    if st.button("📧 Export Daily Report"):
+        excel_data = export_daily_report()
+        st.download_button(
+            label="Download Excel Report",
+            data=excel_data,
+            file_name=f"logistics_report_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        st.success("Report generated! Download ready.")
